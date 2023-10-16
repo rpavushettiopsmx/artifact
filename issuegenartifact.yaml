@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    strategy.spinnaker.io/max-version-history: '2'
+  name: opsmx-issuegen-demolatest
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: opsmx-issugen
+  template:
+    metadata:
+      labels:
+        app: opsmx-issugen
+        version: '${#stage("Build")["context"]["Buildnumber"]}'
+    spec:
+      containers:
+        - image: >-
+            quay.io/opsmxpublic/canary-issuegen:${#stage("Build")["context"]["Buildnumber"]}
+          imagePullPolicy: Always
+          name: canary-issuegen
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opsmx-issugen-service
+spec:
+  ports:
+    - name: canary
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    - name: reports
+      port: 9090
+      protocol: TCP
+      targetPort: 9090
+  selector:
+    app: opsmx-issugen
+  type: ClusterIP
